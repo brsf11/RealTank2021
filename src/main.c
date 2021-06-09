@@ -19,6 +19,8 @@ int main()
 
 void LCD_init()
 {
+	LCD_write(0x01,0); 
+	Delay(100000);
 	LCD_write(0xCF,0);  
 	LCD_write(0x00,1); 
 	LCD_write(0xC1,1); 
@@ -111,6 +113,24 @@ void LCD_init()
 	LCD_write(0x11,0); //Exit Sleep
 	Delay(6000000);
 	LCD_write(0x29,0); //display on
+	LCD_write(0x36,0);
+	LCD_write(0x08,1);
+	LCD_write(0x2A,0);
+	LCD_write(0x00,1);
+	LCD_write(0x00,1);
+	LCD_write(0x00,1);
+	LCD_write(0xEF,1);
+	LCD_write(0x2B,0);
+	LCD_write(0x00,1);
+	LCD_write(0x00,1);
+	LCD_write(0x01,1);
+	LCD_write(0x3f,1);
+	LCD_write(0x2C,0);
+	int i;
+	for(i=0;i<240*320;i++)
+	{
+		LCD_write(0xFFFF,1);
+	}
 }
 
 void LCD_set_cursor(uint16_t x,uint16_t y)
