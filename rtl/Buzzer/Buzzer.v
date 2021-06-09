@@ -29,6 +29,9 @@ module Buzzer #(parameter isSim = 0,parameter isAHB = 1) (input wire clk,rst_n,
 	wire isCyl,BisPlaying,Bstop,SisPlaying;
 	wire ref_BGM,ref_Sound;
 
+	assign SBDMA_HWRITE = 1'b0;
+	assign BBDMA_HWRITE = 1'b0;
+
 	generate
 
 		if(isAHB) begin

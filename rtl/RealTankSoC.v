@@ -1,10 +1,17 @@
-module RealTankSoC(input  wire clk,
-                 input  wire RSTn,
-                 inout  wire SWDIO,  
-                 input  wire SWCLK,
-                 input  wire[3:0] col,
-                 output wire[3:0] row,
-                 output wire PWM);
+module RealTankSoC(input  wire       clk,
+                   input  wire       RSTn,
+                   inout  wire       SWDIO,  
+                   input  wire       SWCLK,
+                   input  wire[3:0]  col,
+                   output wire[3:0]  row,
+                   output wire       PWM,
+                   output wire       LCD_CS,
+                   output wire       LCD_RS,
+                   output wire       LCD_WR,
+                   output wire       LCD_RD,
+                   output wire       LCD_RST,
+                   output wire[15:0] LCD_DATA,
+                   output wire       LCD_BL_CTR);
  
 //------------------------------------------------------------------------------
 // DEBUG IOBUF 
@@ -150,7 +157,21 @@ module RealTankSoC(input  wire clk,
 
     wire       AHB2APB_HREADYOUT;
     wire[31:0] AHB2APB_HRDATA;
-    wire       AHB2APB_HRESP; 
+    wire       AHB2APB_HRESP;
+
+    //Printer FIFO Port
+    wire       PTFIFO_HSEL;
+    wire[31:0] PTFIFO_HADDR;
+    wire[1:0]  PTFIFO_HTRANS;
+    wire[2:0]  PTFIFO_HSIZE;
+    wire[3:0]  PTFIFO_HPROT;
+    wire       PTFIFO_HWRITE;
+    wire       PTFIFO_HREADY;
+    wire[31:0] PTFIFO_HWDATA;
+
+    wire       PTFIFO_HREADYOUT;
+    wire[31:0] PTFIFO_HRDATA;
+    wire       PTFIFO_HRESP; 
 
     //SBDMA Port
     wire[31:0] SBDMA_HADDR;
@@ -165,6 +186,17 @@ module RealTankSoC(input  wire clk,
     wire       BBDMA_HWRITE;
     wire[31:0] BBDMA_HRDATA;
     wire       BBDMA_HREADY;
+
+    //Printer DMA Port
+    wire[31:0] PTDMA_HADDR;
+    wire[1:0]  PTDMA_HTRANS;
+    wire       PTDMA_HWRITE;
+    wire[31:0] PTDMA_HRDATA;
+    wire       PTDMA_HREADY;
+
+    assign PTDMA_HADDR = 32'h0000_0000;
+    assign PTDMA_HTRANS = 2'b00;
+    assign PTDMA_HWRITE = 1'b0;
 
     //RAMCODE Port
     wire       RAMCODE_HSEL;
@@ -192,7 +224,7 @@ module RealTankSoC(input  wire clk,
     wire[31:0] RAMDATA_HRDATA;
     wire[1:0]  RAMDATA_HRESP;
 
-    BuzzerSoCBusMtx BuzzerSoCBusMtx(
+    RealTankSoCBusMtx RealTankSoCBusMtx(
         //General Signals
         .HCLK           (clk),
         .HRESETn        (cpuresetn),
@@ -255,6 +287,25 @@ module RealTankSoC(input  wire clk,
         .HRUSERS2                           (),
         .HRDATAS2                           (BBDMA_HRDATA),
 
+        //Master3 Signals Printer DMA
+        .HSELS3                             (1'b1),
+        .HADDRS3                            (PTDMA_HADDR),
+        .HTRANSS3                           (PTDMA_HTRANS),
+        .HWRITES3                           (1'b0),
+        .HSIZES3                            (3'b001),
+        .HBURSTS3                           (3'b000),
+        .HPROTS3                            (4'b0000),
+        .HMASTERS3                          (4'b0000),
+        .HWDATAS3                           (32'b0),
+        .HMASTLOCKS3                        (1'b0),
+        .HREADYS3                           (PTDMA_HREADY),
+        .HAUSERS3                           (32'b0),
+        .HWUSERS3                           (32'b0),
+        .HREADYOUTS3                        (PTDMA_HREADY),
+        .HRESPS3                            (),
+        .HRUSERS3                           (),
+        .HRDATAS3                           (PTDMA_HRDATA),
+
         //Slave0 Signals RAMCODE
         .HSELM0                             (RAMCODE_HSEL),
         .HADDRM0                            (RAMCODE_HADDR),
@@ -311,6 +362,25 @@ module RealTankSoC(input  wire clk,
         .HREADYOUTM2                        (AHB2APB_HREADYOUT),
         .HRESPM2                            (AHB2APB_HRESP),
         .HRUSERM2                           (32'b0),
+
+        //Slave3 Signals Printer FIFO
+        .HSELM3                             (PTFIFO_HSEL),
+        .HADDRM3                            (PTFIFO_HADDR),
+        .HTRANSM3                           (PTFIFO_HTRANS),
+        .HWRITEM3                           (PTFIFO_HWRITE),
+        .HSIZEM3                            (PTFIFO_HSIZE),
+        .HBURSTM3                           (),
+        .HPROTM3                            (PTFIFO_HPROT),
+        .HMASTERM3                          (),
+        .HWDATAM3                           (PTFIFO_HWDATA),
+        .HMASTLOCKM3                        (),
+        .HREADYMUXM3                        (PTFIFO_HREADY),
+        .HAUSERM3                           (),
+        .HWUSERM3                           (),
+        .HRDATAM3                           (PTFIFO_HRDATA),
+        .HREADYOUTM3                        (PTFIFO_HREADYOUT),
+        .HRESPM3                            (PTFIFO_HRESP),
+        .HRUSERM3                           (32'b0),
 
         //Scan chain
         .SCANENABLE                         (1'b0),
@@ -640,6 +710,69 @@ wire [3:0]  RAMDATA_WRITE;
         .KeyboardINT    (KeyboardINT)
     );
 
+//------------------------------------------------------------------------------
+// AHB_FIFO_Interface
+//------------------------------------------------------------------------------
 
+    wire       PTFIFO_wfull;
+    wire       PTFIFO_winc;
+    wire[16:0] PTFIFO_wdata;
+
+    AHB_FIFO_Interface AHB_FIFO_Interface(
+        .clk            (clk),
+        .rst_n          (cpuresetn),
+        .wfull          (PTFIFO_wfull),
+        .HSEL           (PTFIFO_HSEL),
+        .HWRITE         (PTFIFO_HWRITE),
+        .HREADY         (PTFIFO_HREADY),
+        .HTRANS         (PTFIFO_HTRANS),
+        .HWDATA         (PTFIFO_HWDATA),
+        .HREADYOUT      (PTFIFO_HREADYOUT),
+        .HRDATA         (PTFIFO_HRDATA),
+        .HRESP          (PTFIFO_HRESP),
+        .winc           (PTFIFO_winc),
+        .wdata          (PTFIFO_wdata)
+    );
+
+//------------------------------------------------------------------------------
+// PTFIFO
+//------------------------------------------------------------------------------
+
+    wire       PTFIFO_rempty;
+    wire       PTFIFO_rinc;
+    wire[16:0] PTFIFO_rdata;
+
+    FIFO_synq #(
+        .width(17),
+        .depth(4)
+    ) PTFIFO(
+        .clk            (clk),
+        .rst_n          (cpuresetn),
+        .winc           (PTFIFO_winc),
+        .rinc           (PTFIFO_rinc),
+        .wdata          (PTFIFO_wdata),
+        .wfull          (PTFIFO_wfull),
+        .rempty         (PTFIFO_rempty),
+        .rdata          (PTFIFO_rdata)
+    );
+
+//------------------------------------------------------------------------------
+// Interface_9341
+//------------------------------------------------------------------------------
+
+    Interface_9341 Interface_9341(
+        .clk            (clk),
+        .rst_n          (cpuresetn),
+        .rempty         (PTFIFO_rempty),
+        .rdata          (PTFIFO_rdata),
+        .rinc           (PTFIFO_rinc),
+        .LCD_DATA       (LCD_DATA),
+        .LCD_CS         (LCD_CS),
+        .LCD_WR         (LCD_WR),
+        .LCD_RS         (LCD_RS),
+        .LCD_RD         (LCD_RD),
+        .LCD_RST        (LCD_RST),
+        .LCD_BL_CTR     (LCD_BL_CTR)
+    );
 
 endmodule
