@@ -1,7 +1,7 @@
 module Printer_ctr(input wire      clk,rst_n,
                    input wire      rempty,wfull,
-                   input wire      HREADY,row_end,img_end,
-                   output wire     XY,AddrPh,
+                   input wire      HREADY,row_end,img_end,init_sign,init_end,
+                   output wire     XY,AddrPh,init_mode,
                    output reg      rinc,winc,
                    output reg[2:0] data_sel,
                    output reg      ID,       //0: Ins  1: Data
@@ -18,6 +18,7 @@ module Printer_ctr(input wire      clk,rst_n,
     parameter RamPre   = 4'b1000;
     parameter Pixel_Ad = 4'b1001;
     parameter Pixel_Da = 4'b1010;
+    parameter Init     = 4'b1011;
     reg[3:0] curr_state,next_state;
 
     //FSM block
@@ -39,12 +40,23 @@ module Printer_ctr(input wire      clk,rst_n,
                     HTRANS     = 2'b00;
                 end
                 else begin
-                    next_state = Addr;
-                    rinc       = 1'b1;
-                    winc       = 1'b0;
-                    data_sel   = 3'b000;
-                    ID         = 1'b0;
-                    HTRANS     = 2'b00;
+                    if(init_sign)begin
+                        next_state = Init;
+                        rinc       = 1'b1;
+                        winc       = 1'b0;
+                        data_sel   = 3'b000;
+                        ID         = 1'b0;
+                        HTRANS     = 2'b00;
+                    end
+                    else begin
+                        next_state = Addr;
+                        rinc       = 1'b1;
+                        winc       = 1'b0;
+                        data_sel   = 3'b000;
+                        ID         = 1'b0;
+                        HTRANS     = 2'b00;
+                    end
+                    
                 end
             end
             Addr:begin
@@ -245,6 +257,24 @@ module Printer_ctr(input wire      clk,rst_n,
                     HTRANS     = 2'b00;
                 end
             end
+            Init:begin
+                if(init_end)begin
+                    next_state = IDLE;
+                    rinc       = 1'b0;
+                    winc       = 1'b0;
+                    data_sel   = 3'b000;
+                    ID         = 1'b0;
+                    HTRANS     = 2'b00;
+                end
+                else begin
+                    next_state = Init;
+                    rinc       = 1'b0;
+                    winc       = 1'b0;
+                    data_sel   = 3'b000;
+                    ID         = 1'b0;
+                    HTRANS     = 2'b00;
+                end
+            end
             default:begin
                 next_state = IDLE;
                 rinc       = 1'b0;
@@ -257,7 +287,8 @@ module Printer_ctr(input wire      clk,rst_n,
     end
 
 
-    assign XY     = curr_state == IDLE;
-    assign AddrPh = curr_state == Addr;
+    assign XY        = curr_state == IDLE;
+    assign AddrPh    = curr_state == Addr;
+    assign init_mode = curr_state == Init;
 
 endmodule
