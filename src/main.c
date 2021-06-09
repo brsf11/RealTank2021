@@ -9,6 +9,7 @@ void LCD_WriteRAM_Prepare(void);
 
 int main()
 {
+	Delay(6000000);
 	LCD_init();
 	LCD_fill(100,100);
 
