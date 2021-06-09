@@ -5,7 +5,7 @@ module testbench();
     reg clk,RSTn;
     reg[3:0] col;
 
-    BuzzerSoC core(
+    RealTankSoC core(
         .clk(clk),
         .RSTn(RSTn),
         .SWCLK(1'b0),

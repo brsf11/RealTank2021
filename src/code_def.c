@@ -12,7 +12,7 @@ void Delay(int interval)
 
 void LCD_write(uint16_t data,uint32_t isData)
 {
-    uint32_t temp = uint32_t(data);
+    uint32_t temp = (uint32_t)data;
     if(isData)
     {
         PTFIFO = temp | 0x00010000;

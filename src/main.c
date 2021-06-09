@@ -10,7 +10,7 @@ void LCD_WriteRAM_Prepare(void);
 int main()
 {
 	LCD_init();
-
+	LCD_fill(100,100);
 
     while(1);
     return 0;
@@ -125,12 +125,12 @@ void LCD_set_cursor(uint16_t x,uint16_t y)
 void LCD_fill(uint16_t x,uint16_t y)
 {
 	uint16_t i,j;
-	xlen=20;	 
+	uint16_t xlen=20;	 
 	for(i=y;i<=y+20;i++)
 	{
 	 	LCD_set_cursor(x,i);      				
 		LCD_WriteRAM_Prepare();     				  
-		for(j=0;j<xlen;j++)LCD_WRITE(0X0000,1);		    
+		for(j=0;j<xlen;j++)LCD_write(0X0000,1);		    
 	}
 }
 
