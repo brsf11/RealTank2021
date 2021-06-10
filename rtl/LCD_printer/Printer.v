@@ -18,9 +18,11 @@ module Printer(input wire        clk,rst_n,
     wire init_sign,init_end,init_mode;
     wire XY,SizePh,AddrPh;
     wire PT_winc;
-    wire[2:0] data_sel;
+    wire[3:0] data_sel;
     wire[16:0] PT_wdata;
     reg[15:0] temp_wdata;
+
+    wire[31:0] wfull_HRDATA_buf;
 
     reg[4:0] row_count,col_count;
 
@@ -34,6 +36,7 @@ module Printer(input wire        clk,rst_n,
         .img_end    (img_end),
         .init_sign  (init_sign),
         .init_end   (init_end),
+        .HRDATA     (HRDATA),
         .XY         (XY),
         .SizePh     (SizePh),
         .AddrPh     (AddrPh),
@@ -42,7 +45,8 @@ module Printer(input wire        clk,rst_n,
         .winc       (PT_winc),
         .data_sel   (data_sel),
         .ID         (PT_wdata[16]),
-        .HTRANS     (HTRANS)
+        .HTRANS     (HTRANS),
+        .wfull_HRDATA_buf (wfull_HRDATA_buf)
     );
 
     wire       init_winc;
@@ -60,7 +64,7 @@ module Printer(input wire        clk,rst_n,
 
     always @(posedge clk) begin
         if(XY) XYReg <= rdata;
-        else if(row_end&PT_winc&(data_sel == 3'b111)) XYReg <= XYReg + 1'b1;
+        else if(row_end&PT_winc&((data_sel == 4'b0111)|(data_sel == 4'b1000))) XYReg <= XYReg + 1'b1;
     end
 
     always @(posedge clk) begin
@@ -70,23 +74,23 @@ module Printer(input wire        clk,rst_n,
     always @(posedge clk) begin
         if(AddrPh) AddrReg <= rdata;
         else begin
-            if((data_sel == 3'b111)&PT_winc) AddrReg <= AddrReg + 2'b10;
+            if(((data_sel == 4'b0111)|(data_sel == 4'b1000))&PT_winc) AddrReg <= AddrReg + 2'b10;
         end
     end
 
     always @(posedge clk) begin
         if(!rst_n) row_count <= 5'b0;
         else begin
-            if(row_end&PT_winc&(data_sel == 3'b111)) row_count <= 5'b0;
-            else if(PT_winc&(data_sel == 3'b111)) row_count <= row_count + 1'b1;
+            if(row_end&PT_winc&((data_sel == 4'b0111)|(data_sel == 4'b1000))) row_count <= 5'b0;
+            else if(PT_winc&((data_sel == 4'b0111)|(data_sel == 4'b1000))) row_count <= row_count + 1'b1;
         end
     end
 
     always @(posedge clk) begin
         if(!rst_n) col_count <= 5'b0;
         else begin
-            if(img_end&PT_winc&(data_sel == 3'b111)) col_count <= 5'b0;
-            else if(row_end&PT_winc&(data_sel == 3'b111)) col_count <= col_count + 1'b1;
+            if(img_end&PT_winc&((data_sel == 4'b0111)|(data_sel == 4'b1000))) col_count <= 5'b0;
+            else if(row_end&PT_winc&((data_sel == 4'b0111)|(data_sel == 4'b1000))) col_count <= col_count + 1'b1;
         end
     end
 
@@ -101,16 +105,20 @@ module Printer(input wire        clk,rst_n,
 
     always @(*) begin
         case(data_sel)
-            3'b000: temp_wdata = 16'h002a;  //XIns
-            3'b001: temp_wdata = XH;        //XAix1
-            3'b010: temp_wdata = XL;        //XAix2
-            3'b011: temp_wdata = 16'h002b;  //YIns
-            3'b100: temp_wdata = YH;        //YAix1
-            3'b101: temp_wdata = YL;        //YAix2
-            3'b110: temp_wdata = 16'h002c;  //RamPre
-            3'b111:begin                    //Pixel
+            4'b0000: temp_wdata = 16'h002a;  //XIns
+            4'b0001: temp_wdata = XH;        //XAix1
+            4'b0010: temp_wdata = XL;        //XAix2
+            4'b0011: temp_wdata = 16'h002b;  //YIns
+            4'b0100: temp_wdata = YH;        //YAix1
+            4'b0101: temp_wdata = YL;        //YAix2
+            4'b0110: temp_wdata = 16'h002c;  //RamPre
+            4'b0111:begin                    //Pixel
                 if(AddrReg[1]) temp_wdata = HRDATA[31:16]; 
                 else           temp_wdata = HRDATA[15:0]; 
+            end
+            4'b1000:begin                    //Pixel
+                if(AddrReg[1]) temp_wdata = wfull_HRDATA_buf[31:16]; 
+                else           temp_wdata = wfull_HRDATA_buf[15:0]; 
             end
             default: temp_wdata = 16'h0;
         endcase

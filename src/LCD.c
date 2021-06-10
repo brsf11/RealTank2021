@@ -12,6 +12,6 @@ void Draw_pic(const uint16_t* pic,uint16_t x,uint16_t y,uint16_t size)
     temp_size = (uint32_t)(size - 1);
 
     PTFIFO = xy;
-    PTFIFO = size;
+    PTFIFO = temp_size;
     PTFIFO = (uint32_t)pic;
 }

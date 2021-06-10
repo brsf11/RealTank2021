@@ -1,11 +1,13 @@
-module Printer_ctr(input wire      clk,rst_n,
-                   input wire      rempty,wfull,
-                   input wire      HREADY,row_end,img_end,init_sign,init_end,
-                   output wire     XY,SizePh,AddrPh,init_mode,
-                   output reg      rinc,winc,
-                   output reg[2:0] data_sel,
-                   output reg      ID,       //0: Ins  1: Data
-                   output reg[1:0] HTRANS);
+module Printer_ctr(input wire       clk,rst_n,
+                   input wire       rempty,wfull,
+                   input wire       HREADY,row_end,img_end,init_sign,init_end,
+                   input wire[31:0] HRDATA,
+                   output wire      XY,SizePh,AddrPh,init_mode,
+                   output reg       rinc,winc,
+                   output reg[3:0]  data_sel,
+                   output reg       ID,       //0: Ins  1: Data
+                   output reg[1:0]  HTRANS,
+                   output reg[31:0] wfull_HRDATA_buf);
 
     parameter IDLE     = 4'b0000;
     parameter Addr     = 4'b0001;
@@ -20,7 +22,10 @@ module Printer_ctr(input wire      clk,rst_n,
     parameter Pixel_Da = 4'b1010;
     parameter Init     = 4'b1011;
     parameter Size     = 4'b1100;
+    parameter WaitDa   = 4'b1101;
     reg[3:0] curr_state,next_state;
+
+    wire HRDATA_buf_enb;
 
     //FSM block
 
@@ -36,7 +41,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = IDLE;
                     rinc       = 1'b0;
                     winc       = 1'b0;
-                    data_sel   = 3'b000;
+                    data_sel   = 4'b0000;
                     ID         = 1'b0;
                     HTRANS     = 2'b00;
                 end
@@ -45,7 +50,7 @@ module Printer_ctr(input wire      clk,rst_n,
                         next_state = Init;
                         rinc       = 1'b1;
                         winc       = 1'b0;
-                        data_sel   = 3'b000;
+                        data_sel   = 4'b0000;
                         ID         = 1'b0;
                         HTRANS     = 2'b00;
                     end
@@ -53,7 +58,7 @@ module Printer_ctr(input wire      clk,rst_n,
                         next_state = Size;
                         rinc       = 1'b1;
                         winc       = 1'b0;
-                        data_sel   = 3'b000;
+                        data_sel   = 4'b0000;
                         ID         = 1'b0;
                         HTRANS     = 2'b00;
                     end
@@ -64,7 +69,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = Size;
                     rinc       = 1'b0;
                     winc       = 1'b0;
-                    data_sel   = 3'b000;
+                    data_sel   = 4'b0000;
                     ID         = 1'b0;
                     HTRANS     = 2'b00;
                 end
@@ -72,7 +77,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = Addr;
                     rinc       = 1'b1;
                     winc       = 1'b0;
-                    data_sel   = 3'b000;
+                    data_sel   = 4'b0000;
                     ID         = 1'b0;
                     HTRANS     = 2'b00;
                 end
@@ -82,7 +87,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = Addr;
                     rinc       = 1'b0;
                     winc       = 1'b0;
-                    data_sel   = 3'b000;
+                    data_sel   = 4'b0000;
                     ID         = 1'b0;
                     HTRANS     = 2'b00;
                 end
@@ -90,7 +95,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = XIns;
                     rinc       = 1'b1;
                     winc       = 1'b0;
-                    data_sel   = 3'b000;
+                    data_sel   = 4'b0000;
                     ID         = 1'b0;
                     HTRANS     = 2'b00;
                 end
@@ -100,7 +105,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = XIns;
                     rinc       = 1'b0;
                     winc       = 1'b0;
-                    data_sel   = 3'b000;
+                    data_sel   = 4'b0000;
                     ID         = 1'b0;
                     HTRANS     = 2'b00;
                 end
@@ -108,7 +113,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = XAix1;
                     rinc       = 1'b0;
                     winc       = 1'b1;
-                    data_sel   = 3'b000;
+                    data_sel   = 4'b0000;
                     ID         = 1'b0;
                     HTRANS     = 2'b00;
                 end
@@ -118,7 +123,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = XAix1;
                     rinc       = 1'b0;
                     winc       = 1'b0;
-                    data_sel   = 3'b000;
+                    data_sel   = 4'b0000;
                     ID         = 1'b1;
                     HTRANS     = 2'b00;
                 end
@@ -126,7 +131,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = XAix2;
                     rinc       = 1'b0;
                     winc       = 1'b1;
-                    data_sel   = 3'b001;
+                    data_sel   = 4'b0001;
                     ID         = 1'b1;
                     HTRANS     = 2'b00;
                 end
@@ -136,7 +141,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = XAix2;
                     rinc       = 1'b0;
                     winc       = 1'b0;
-                    data_sel   = 3'b000;
+                    data_sel   = 4'b0000;
                     ID         = 1'b1;
                     HTRANS     = 2'b00;
                 end
@@ -144,7 +149,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = YIns;
                     rinc       = 1'b0;
                     winc       = 1'b1;
-                    data_sel   = 3'b010;
+                    data_sel   = 4'b0010;
                     ID         = 1'b1;
                     HTRANS     = 2'b00;
                 end
@@ -154,7 +159,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = YIns;
                     rinc       = 1'b0;
                     winc       = 1'b0;
-                    data_sel   = 3'b000;
+                    data_sel   = 4'b0000;
                     ID         = 1'b0;
                     HTRANS     = 2'b00;
                 end
@@ -162,7 +167,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = YAix1;
                     rinc       = 1'b0;
                     winc       = 1'b1;
-                    data_sel   = 3'b011;
+                    data_sel   = 4'b0011;
                     ID         = 1'b0;
                     HTRANS     = 2'b00;
                 end
@@ -172,7 +177,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = YAix1;
                     rinc       = 1'b0;
                     winc       = 1'b0;
-                    data_sel   = 3'b000;
+                    data_sel   = 4'b0000;
                     ID         = 1'b1;
                     HTRANS     = 2'b00;
                 end
@@ -180,7 +185,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = YAix2;
                     rinc       = 1'b0;
                     winc       = 1'b1;
-                    data_sel   = 3'b100;
+                    data_sel   = 4'b0100;
                     ID         = 1'b1;
                     HTRANS     = 2'b00;
                 end
@@ -190,7 +195,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = YAix2;
                     rinc       = 1'b0;
                     winc       = 1'b0;
-                    data_sel   = 3'b000;
+                    data_sel   = 4'b0000;
                     ID         = 1'b1;
                     HTRANS     = 2'b00;
                 end
@@ -198,7 +203,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = RamPre;
                     rinc       = 1'b0;
                     winc       = 1'b1;
-                    data_sel   = 3'b101;
+                    data_sel   = 4'b0101;
                     ID         = 1'b1;
                     HTRANS     = 2'b00;
                 end
@@ -208,7 +213,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = RamPre;
                     rinc       = 1'b0;
                     winc       = 1'b0;
-                    data_sel   = 3'b000;
+                    data_sel   = 4'b0000;
                     ID         = 1'b0;
                     HTRANS     = 2'b00;
                 end
@@ -216,7 +221,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = Pixel_Ad;
                     rinc       = 1'b0;
                     winc       = 1'b1;
-                    data_sel   = 3'b110;
+                    data_sel   = 4'b0110;
                     ID         = 1'b0;
                     HTRANS     = 2'b00;
                 end
@@ -226,7 +231,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = Pixel_Da;
                     rinc       = 1'b0;
                     winc       = 1'b0;
-                    data_sel   = 3'b000;
+                    data_sel   = 4'b0000;
                     ID         = 1'b1;
                     HTRANS     = 2'b10;
                 end
@@ -234,18 +239,72 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = Pixel_Ad;
                     rinc       = 1'b0;
                     winc       = 1'b0;
-                    data_sel   = 3'b000;
+                    data_sel   = 4'b0000;
                     ID         = 1'b1;
                     HTRANS     = 2'b10;
                 end
             end
             Pixel_Da:begin
                 if(HREADY)begin
+                    if(wfull)begin
+                        next_state = WaitDa;
+                        rinc       = 1'b0;
+                        winc       = 1'b0;
+                        data_sel   = 4'b0000;
+                        ID         = 1'b1;
+                        HTRANS     = 2'b00;
+                    end
+                    else begin
+                        if(img_end)begin
+                            next_state = IDLE;
+                            rinc       = 1'b0;
+                            winc       = 1'b1;
+                            data_sel   = 4'b0111;
+                            ID         = 1'b1;
+                            HTRANS     = 2'b00;
+                        end
+                        else if(row_end)begin
+                            next_state = XIns;
+                            rinc       = 1'b0;
+                            winc       = 1'b1;
+                            data_sel   = 4'b0111;
+                            ID         = 1'b1;
+                            HTRANS     = 2'b00;
+                        end
+                        else begin
+                            next_state = Pixel_Ad;
+                            rinc       = 1'b0;
+                            winc       = 1'b1;
+                            data_sel   = 4'b0111;
+                            ID         = 1'b1;
+                            HTRANS     = 2'b00;
+                        end
+                    end
+                end
+                else begin
+                    next_state = Pixel_Da;
+                    rinc       = 1'b0;
+                    winc       = 1'b0;
+                    data_sel   = 4'b0000;
+                    ID         = 1'b1;
+                    HTRANS     = 2'b00;
+                end
+            end
+            WaitDa:begin
+                if(wfull)begin
+                    next_state = WaitDa;
+                    rinc       = 1'b0;
+                    winc       = 1'b0;
+                    data_sel   = 4'b0000;
+                    ID         = 1'b1;
+                    HTRANS     = 2'b00;
+                end
+                else begin
                     if(img_end)begin
                         next_state = IDLE;
                         rinc       = 1'b0;
                         winc       = 1'b1;
-                        data_sel   = 3'b111;
+                        data_sel   = 4'b1000;
                         ID         = 1'b1;
                         HTRANS     = 2'b00;
                     end
@@ -253,7 +312,7 @@ module Printer_ctr(input wire      clk,rst_n,
                         next_state = XIns;
                         rinc       = 1'b0;
                         winc       = 1'b1;
-                        data_sel   = 3'b111;
+                        data_sel   = 4'b1000;
                         ID         = 1'b1;
                         HTRANS     = 2'b00;
                     end
@@ -261,18 +320,10 @@ module Printer_ctr(input wire      clk,rst_n,
                         next_state = Pixel_Ad;
                         rinc       = 1'b0;
                         winc       = 1'b1;
-                        data_sel   = 3'b111;
+                        data_sel   = 4'b1000;
                         ID         = 1'b1;
                         HTRANS     = 2'b00;
                     end
-                end
-                else begin
-                    next_state = Pixel_Da;
-                    rinc       = 1'b0;
-                    winc       = 1'b0;
-                    data_sel   = 3'b000;
-                    ID         = 1'b1;
-                    HTRANS     = 2'b00;
                 end
             end
             Init:begin
@@ -280,7 +331,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = IDLE;
                     rinc       = 1'b0;
                     winc       = 1'b0;
-                    data_sel   = 3'b000;
+                    data_sel   = 4'b0000;
                     ID         = 1'b0;
                     HTRANS     = 2'b00;
                 end
@@ -288,7 +339,7 @@ module Printer_ctr(input wire      clk,rst_n,
                     next_state = Init;
                     rinc       = 1'b0;
                     winc       = 1'b0;
-                    data_sel   = 3'b000;
+                    data_sel   = 4'b0000;
                     ID         = 1'b0;
                     HTRANS     = 2'b00;
                 end
@@ -297,11 +348,15 @@ module Printer_ctr(input wire      clk,rst_n,
                 next_state = IDLE;
                 rinc       = 1'b0;
                 winc       = 1'b0;
-                data_sel   = 3'b000;
+                data_sel   = 4'b0000;
                 ID         = 1'b0;
                 HTRANS     = 2'b00;
             end
         endcase
+    end
+
+    always @(posedge clk) begin
+        if(HRDATA_buf_enb) wfull_HRDATA_buf <= HRDATA;
     end
 
 
@@ -309,5 +364,7 @@ module Printer_ctr(input wire      clk,rst_n,
     assign SizePh    = curr_state == Size;
     assign AddrPh    = curr_state == Addr;
     assign init_mode = curr_state == Init;
+
+    assign HRDATA_buf_enb = (curr_state == Pixel_Da)&HREADY&wfull;
 
 endmodule

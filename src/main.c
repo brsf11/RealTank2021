@@ -25,9 +25,9 @@ const uint16_t pic[]={0x4146, 0x4146, 0x4146, 0x4146, 0x4146, 0x4146, 0x4146, 0x
 
 int main()
 {
-	Delay(6000000);
+	//Delay(6000000);
 	LCD_init();
-	Delay(1000000);
+	//Delay(1000000);
 	Draw_pic(pic,100,100,20);
 
     while(1);
