@@ -7,7 +7,7 @@ module AHB_FIFO_Interface(input wire        clk,rst_n,
                           output wire[31:0] HRDATA,
                           output wire       HRESP,
                           output reg        winc,
-                          output wire[16:0] wdata);
+                          output wire[31:0] wdata);
 
     assign HRDATA = 32'b0;
     assign HRESP  = 1'b0;
@@ -56,6 +56,6 @@ module AHB_FIFO_Interface(input wire        clk,rst_n,
     end
 
 
-    assign wdata = HWDATA[16:0];
+    assign wdata = HWDATA[31:0];
 
 endmodule

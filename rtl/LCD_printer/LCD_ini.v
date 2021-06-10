@@ -14,7 +14,7 @@ module LCD_ini(input wire clk,rst_n,
     reg      IP_enb;
     wire fill_st;
 
-    reg[12:0] fill_count;
+    reg[16:0] fill_count;
     reg fill_enb;
     wire fill_end;
 
@@ -118,13 +118,13 @@ module LCD_ini(input wire clk,rst_n,
     end
 
     always @(posedge clk) begin
-        if(IP_enb) fill_count <= 13'b0;
+        if(IP_enb) fill_count <= 17'b0;
         else if(fill_enb) fill_count <= fill_count + 1'b1;
     end
 
     assign fill_st = IP == 7'd106;
     assign rstn = ~(curr_state == IDLE);
-    assign fill_end = fill_count == 13'd76800;
+    assign fill_end = fill_count == 17'd76800;
 
     Block_ROM_init_data Block_ROM_init_data(
         .addr(IP),

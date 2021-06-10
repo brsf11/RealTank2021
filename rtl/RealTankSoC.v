@@ -159,7 +159,7 @@ module RealTankSoC(input  wire       clk,
     wire[31:0] AHB2APB_HRDATA;
     wire       AHB2APB_HRESP;
 
-    //Printer FIFO Port
+    //Printer DMA Port
     wire       PTFIFO_HSEL;
     wire[31:0] PTFIFO_HADDR;
     wire[1:0]  PTFIFO_HTRANS;
@@ -193,10 +193,6 @@ module RealTankSoC(input  wire       clk,
     wire       PTDMA_HWRITE;
     wire[31:0] PTDMA_HRDATA;
     wire       PTDMA_HREADY;
-
-    assign PTDMA_HADDR = 32'h0000_0000;
-    assign PTDMA_HTRANS = 2'b00;
-    assign PTDMA_HWRITE = 1'b0;
 
     //RAMCODE Port
     wire       RAMCODE_HSEL;
@@ -716,7 +712,7 @@ wire [3:0]  RAMDATA_WRITE;
 
     wire       PTFIFO_wfull;
     wire       PTFIFO_winc;
-    wire[16:0] PTFIFO_wdata;
+    wire[31:0] PTFIFO_wdata;
 
     AHB_FIFO_Interface AHB_FIFO_Interface(
         .clk            (clk),
@@ -740,11 +736,11 @@ wire [3:0]  RAMDATA_WRITE;
 
     wire       PTFIFO_rempty;
     wire       PTFIFO_rinc;
-    wire[16:0] PTFIFO_rdata;
+    wire[31:0] PTFIFO_rdata;
 
     FIFO_synq #(
-        .width(17),
-        .depth(4)
+        .width(32),
+        .depth(5)
     ) PTFIFO(
         .clk            (clk),
         .rst_n          (cpuresetn),
@@ -756,6 +752,55 @@ wire [3:0]  RAMDATA_WRITE;
         .rdata          (PTFIFO_rdata)
     );
 
+
+//------------------------------------------------------------------------------
+// Printer
+//------------------------------------------------------------------------------
+
+    wire       INFIFO_wfull;
+    wire       INFIFO_winc;
+    wire[16:0] INFIFO_wdata;
+
+    Printer Printer(
+        .clk            (clk),
+        .rst_n          (cpuresetn),
+        .rempty         (PTFIFO_rempty),
+        .wfull          (INFIFO_wfull),
+        .rdata          (PTFIFO_rdata),
+        .HREADY         (PTDMA_HREADY),
+        .HRDATA         (PTDMA_HRDATA),
+        .winc           (INFIFO_winc),
+        .rinc           (PTFIFO_rinc),
+        .wdata          (INFIFO_wdata),
+        .HADDR          (PTDMA_HADDR),
+        .HTRANS         (PTDMA_HTRANS),
+        .HWRITE         (PTDMA_HWRITE)
+    );
+
+//------------------------------------------------------------------------------
+// Interface_9341_FIFO
+//------------------------------------------------------------------------------
+
+    wire       INFIFO_rempty;
+    wire       INFIFO_rinc;
+    wire[16:0] INFIFO_rdata;
+
+    FIFO_synq #(
+        .width(17),
+        .depth(4)
+    ) Interface_9341_FIFO(
+        .clk            (clk),
+        .rst_n          (cpuresetn),
+        .winc           (INFIFO_winc),
+        .rinc           (INFIFO_rinc),
+        .wdata          (INFIFO_wdata),
+        .wfull          (INFIFO_wfull),
+        .rempty         (INFIFO_rempty),
+        .rdata          (INFIFO_rdata)
+    );
+
+
+
 //------------------------------------------------------------------------------
 // Interface_9341
 //------------------------------------------------------------------------------
@@ -763,9 +808,9 @@ wire [3:0]  RAMDATA_WRITE;
     Interface_9341 Interface_9341(
         .clk            (clk),
         .rst_n          (cpuresetn),
-        .rempty         (PTFIFO_rempty),
-        .rdata          (PTFIFO_rdata),
-        .rinc           (PTFIFO_rinc),
+        .rempty         (INFIFO_rempty),
+        .rdata          (INFIFO_rdata),
+        .rinc           (INFIFO_rinc),
         .LCD_DATA       (LCD_DATA),
         .LCD_CS         (LCD_CS),
         .LCD_WR         (LCD_WR),
