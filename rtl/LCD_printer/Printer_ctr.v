@@ -1,7 +1,7 @@
 module Printer_ctr(input wire      clk,rst_n,
                    input wire      rempty,wfull,
                    input wire      HREADY,row_end,img_end,init_sign,init_end,
-                   output wire     XY,AddrPh,init_mode,
+                   output wire     XY,SizePh,AddrPh,init_mode,
                    output reg      rinc,winc,
                    output reg[2:0] data_sel,
                    output reg      ID,       //0: Ins  1: Data
@@ -19,6 +19,7 @@ module Printer_ctr(input wire      clk,rst_n,
     parameter Pixel_Ad = 4'b1001;
     parameter Pixel_Da = 4'b1010;
     parameter Init     = 4'b1011;
+    parameter Size     = 4'b1100;
     reg[3:0] curr_state,next_state;
 
     //FSM block
@@ -49,14 +50,31 @@ module Printer_ctr(input wire      clk,rst_n,
                         HTRANS     = 2'b00;
                     end
                     else begin
-                        next_state = Addr;
+                        next_state = Size;
                         rinc       = 1'b1;
                         winc       = 1'b0;
                         data_sel   = 3'b000;
                         ID         = 1'b0;
                         HTRANS     = 2'b00;
                     end
-                    
+                end
+            end
+            Size:begin
+                if(rempty)begin
+                    next_state = Size;
+                    rinc       = 1'b0;
+                    winc       = 1'b0;
+                    data_sel   = 3'b000;
+                    ID         = 1'b0;
+                    HTRANS     = 2'b00;
+                end
+                else begin
+                    next_state = Addr;
+                    rinc       = 1'b1;
+                    winc       = 1'b0;
+                    data_sel   = 3'b000;
+                    ID         = 1'b0;
+                    HTRANS     = 2'b00;
                 end
             end
             Addr:begin
@@ -288,6 +306,7 @@ module Printer_ctr(input wire      clk,rst_n,
 
 
     assign XY        = curr_state == IDLE;
+    assign SizePh    = curr_state == Size;
     assign AddrPh    = curr_state == Addr;
     assign init_mode = curr_state == Init;
 
