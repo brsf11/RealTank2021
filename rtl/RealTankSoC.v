@@ -11,9 +11,7 @@ module RealTankSoC(input  wire       clk,
                    output wire       LCD_RD,
                    output wire       LCD_RST,
                    output wire[15:0] LCD_DATA,
-                   output wire       LCD_BL_CTR,
-                   output wire[5:0]  DIG,
-                   output wire       A,B,C,D,E,F,G,DP);
+                   output wire       LCD_BL_CTR);
  
 //------------------------------------------------------------------------------
 // DEBUG IOBUF 
@@ -508,7 +506,6 @@ module RealTankSoC(input  wire       clk,
         .PRDATA3        (Timer_PRDATA),
         .PSLVERR3       (1'b0),
 
-        //Tube
         .PSEL4          (),
         .PREADY4        (1'b0),
         .PRDATA4        (32'b0),
