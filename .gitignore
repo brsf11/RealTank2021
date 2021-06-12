@@ -1,6 +1,6 @@
 /keil/
-!/vivado/pin.xdc
 /vivado/
+!/vivado/pin.xdc
 /modelsim/
 /rtl/APB
 /rtl/RealTankSoCBusMtx/
