@@ -5,7 +5,9 @@
 
 #define MaxObjNum 180
 
-typedef struct 
+typedef struct obj_str object;
+
+typedef struct obj_str
 {
     object* last;
     object* next;

@@ -7,7 +7,7 @@ void LCD_init(void)
 
 void Draw_pic(const uint16_t* pic,uint16_t x,uint16_t y,uint16_t size)
 {
-    if((x+size < X_Limit)&&(y+size < Y_Limit))
+    if((x+size <= X_Limit)&&(y+size <= Y_Limit))
     {
        uint32_t xy,temp_size;
         xy = ((uint32_t)x << 16) | (uint32_t)y;

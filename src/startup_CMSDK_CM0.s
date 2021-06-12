@@ -74,7 +74,8 @@ __Vectors       DCD     __initial_sp              ; Top of Stack
                 DCD     0                         ; Reserved
                 DCD     0            			  ; PendSV Handler
                 DCD     0                         ; SysTick Handler
-                DCD     KEY_Handler              ; IRQ0 Handler
+                DCD     KEY_Handler               ; IRQ0 Handler
+                DCD     Timer_Handler             ; IRQ1 Handler
 
 
 
@@ -95,11 +96,19 @@ Reset_Handler   PROC
 
 
 
-KEY_Handler    PROC
-                EXPORT KEY_Handler            [WEAK]
-				IMPORT KEY
+KEY_Handler     PROC
+                EXPORT  KEY_Handler            [WEAK]
+				IMPORT  KEY
 				PUSH	{R0,R1,R2,LR}
                 BL		KEY
+				POP		{R0,R1,R2,PC}
+                ENDP
+
+Timer_Handler   PROC
+                EXPORT  Timer_Handler            [WEAK]
+				IMPORT  Timer_IRQ
+				PUSH	{R0,R1,R2,LR}
+                BL		Timer_IRQ
 				POP		{R0,R1,R2,PC}
                 ENDP
 

@@ -11,7 +11,9 @@ module RealTankSoC(input  wire       clk,
                    output wire       LCD_RD,
                    output wire       LCD_RST,
                    output wire[15:0] LCD_DATA,
-                   output wire       LCD_BL_CTR);
+                   output wire       LCD_BL_CTR,
+                   output wire[5:0]  DIG,
+                   output wire       A,B,C,D,E,F,G,DP);
  
 //------------------------------------------------------------------------------
 // DEBUG IOBUF 
@@ -28,9 +30,9 @@ module RealTankSoC(input  wire       clk,
 // Interrupt
 //------------------------------------------------------------------------------
 
-    wire KeyboardINT;
+    wire KeyboardIRQ,TimerIRQ;
     wire [31:0] IRQ;
-    assign IRQ = {31'b0,KeyboardINT};
+    assign IRQ = {30'b0,TimerIRQ,KeyboardIRQ};
 
     wire RXEV;
     assign RXEV = 1'b0;
@@ -455,15 +457,16 @@ module RealTankSoC(input  wire       clk,
     wire[31:0] BDMAC_PWDATA;
 
     //Keyboard Port
-
     wire[31:0] Keyboard_PRDATA;
 
+    //Timer Port
+    wire[31:0] Timer_PRDATA;
 
     cmsdk_apb_slave_mux #(
         .PORT0_ENABLE (1),
         .PORT1_ENABLE (1),
         .PORT2_ENABLE (0),
-        .PORT3_ENABLE (0),
+        .PORT3_ENABLE (1),
         .PORT4_ENABLE (0),
         .PORT5_ENABLE (0),
         .PORT6_ENABLE (0),
@@ -481,26 +484,31 @@ module RealTankSoC(input  wire       clk,
         .DECODE4BIT     (PADDR[15:12]),
         .PSEL           (PSEL),
 
+        //Buzzer DMA
         .PSEL0          (BDMAC_PSEL),
         .PREADY0        (BDMAC_PREADYOUT),
         .PRDATA0        (BDMAC_PRDATA),
         .PSLVERR0       (1'b0),
 
+        //Keyboard
         .PSEL1          (),
         .PREADY1        (1'b1),
         .PRDATA1        (Keyboard_PRDATA),
         .PSLVERR1       (1'b0),
 
+        //UART
         .PSEL2          (),
         .PREADY2        (1'b0),
         .PRDATA2        (32'b0),
         .PSLVERR2       (1'b0),
 
+        //Timer
         .PSEL3          (),
-        .PREADY3        (1'b0),
-        .PRDATA3        (32'b0),
+        .PREADY3        (1'b1),
+        .PRDATA3        (Timer_PRDATA),
         .PSLVERR3       (1'b0),
 
+        //Tube
         .PSEL4          (),
         .PREADY4        (1'b0),
         .PRDATA4        (32'b0),
@@ -703,7 +711,7 @@ wire [3:0]  RAMDATA_WRITE;
         .col_in         (col),
         .row            (row),
         .PRDATA         (Keyboard_PRDATA),
-        .KeyboardINT    (KeyboardINT)
+        .KeyboardINT    (KeyboardIRQ)
     );
 
 //------------------------------------------------------------------------------
@@ -818,6 +826,19 @@ wire [3:0]  RAMDATA_WRITE;
         .LCD_RD         (LCD_RD),
         .LCD_RST        (LCD_RST),
         .LCD_BL_CTR     (LCD_BL_CTR)
+    );
+
+//------------------------------------------------------------------------------
+// Timer
+//------------------------------------------------------------------------------
+
+    Timer #(
+        .hiFq(0)
+    ) Timer(
+        .clk            (clk),
+        .rst_n          (cpuresetn),
+        .HRDATA         (Timer_PRDATA),
+        .TimerIRQ       (TimerIRQ)
     );
 
 endmodule
