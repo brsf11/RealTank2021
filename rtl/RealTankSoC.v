@@ -11,7 +11,9 @@ module RealTankSoC(input  wire       clk,
                    output wire       LCD_RD,
                    output wire       LCD_RST,
                    output wire[15:0] LCD_DATA,
-                   output wire       LCD_BL_CTR);
+                   output wire       LCD_BL_CTR,
+                   input wire        RXD,
+                   output wire       TXD);
  
 //------------------------------------------------------------------------------
 // DEBUG IOBUF 
@@ -28,9 +30,9 @@ module RealTankSoC(input  wire       clk,
 // Interrupt
 //------------------------------------------------------------------------------
 
-    wire KeyboardIRQ,TimerIRQ;
+    wire KeyboardIRQ,TimerIRQ,RXIRQ;
     wire [31:0] IRQ;
-    assign IRQ = {30'b0,TimerIRQ,KeyboardIRQ};
+    assign IRQ = {29'b0,RXIRQ,TimerIRQ,KeyboardIRQ};
 
     wire RXEV;
     assign RXEV = 1'b0;
@@ -457,13 +459,19 @@ module RealTankSoC(input  wire       clk,
     //Keyboard Port
     wire[31:0] Keyboard_PRDATA;
 
+    //UART Port
+    wire       UART_PSEL;
+    wire       UART_PREADY;
+    wire[31:0] UART_PRDATA;
+    wire       UART_PSLVERR;
+
     //Timer Port
     wire[31:0] Timer_PRDATA;
 
     cmsdk_apb_slave_mux #(
         .PORT0_ENABLE (1),
         .PORT1_ENABLE (1),
-        .PORT2_ENABLE (0),
+        .PORT2_ENABLE (1),
         .PORT3_ENABLE (1),
         .PORT4_ENABLE (0),
         .PORT5_ENABLE (0),
@@ -495,10 +503,10 @@ module RealTankSoC(input  wire       clk,
         .PSLVERR1       (1'b0),
 
         //UART
-        .PSEL2          (),
-        .PREADY2        (1'b0),
-        .PRDATA2        (32'b0),
-        .PSLVERR2       (1'b0),
+        .PSEL2          (UART_PSEL),
+        .PREADY2        (UART_PREADY),
+        .PRDATA2        (UART_PRDATA),
+        .PSLVERR2       (UART_PSLVERR),
 
         //Timer
         .PSEL3          (),
@@ -836,6 +844,34 @@ wire [3:0]  RAMDATA_WRITE;
         .rst_n          (cpuresetn),
         .HRDATA         (Timer_PRDATA),
         .TimerIRQ       (TimerIRQ)
+    );
+
+//------------------------------------------------------------------------------
+// APB_UART
+//------------------------------------------------------------------------------
+
+    cmsdk_apb_uart UART(
+        .PCLK           (clk),
+        .PCLKG          (clk),
+        .PRESETn        (cpuresetn),
+        .PSEL           (UART_PSEL),
+        .PADDR          (PADDR[11:2]),
+        .PENABLE        (PENABLE),
+        .PWRITE         (PWRITE),
+        .PWDATA         (PWDATA),
+        .ECOREVNUM      (4'b0),
+        .PRDATA         (UART_PRDATA),
+        .PREADY         (UART_PREADY),
+        .PSLVERR        (UART_PSLVERR),
+        .RXD            (RXD),
+        .TXD            (TXD),
+        .TXEN           (),
+        .BAUDTICK       (),
+        .TXINT          (),
+        .RXINT          (RXIRQ),
+        .TXOVRINT       (),
+        .RXOVRINT       (),
+        .UARTINT        ()
     );
 
 endmodule

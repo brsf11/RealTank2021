@@ -2,6 +2,7 @@
 #include"Driver/Buzzer.h"
 #include"Driver/LCD.h"
 #include"Driver/Timer.h"
+#include"Driver/UART.h"
 
 #include"GameSDK/Game.h"
 #include"RealTank.h"
@@ -12,14 +13,23 @@ uint16_t x;
 
 int main()
 {
+    NVIC_CTRL_ADDR = 0x0;
 	Delay(6000000);
 	LCD_init();
 	Delay(1000000);
     GameInit();
 
-    Draw_pic(black,110,300,20);
+    UART_Init();
 
     int i,j;
+    for(i=0;i<10;i++)
+    {
+        UART_putc('h');
+    }
+
+    Draw_pic(black,110,300,20);
+
+    
     for(i=0;i<12;i++)
     {
         for(j=0;j<16;j++)
