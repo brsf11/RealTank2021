@@ -3,8 +3,9 @@ module RealTankSoC(input  wire       clk,
                    inout  wire       SWDIO,  
                    input  wire       SWCLK,
                    input  wire[3:0]  col,
+                   input  wire       BGM_sw,
                    output wire[3:0]  row,
-                   output wire       PWM,
+                   output wire       PWM_out,
                    output wire       LCD_CS,
                    output wire       LCD_RS,
                    output wire       LCD_WR,
@@ -583,6 +584,8 @@ module RealTankSoC(input  wire       clk,
 // Instantiate Buzzer
 //------------------------------------------------------------------------------
 
+    wire PWM;
+
     Buzzer #(.isSim(0) ,.isAHB(0)) Buzzer(
         //General Signals
         .clk            (clk),
@@ -622,6 +625,7 @@ module RealTankSoC(input  wire       clk,
     assign BDMAC_PTRANS = {1'b0,PENABLE};
     assign BDMAC_PWRITE = PWRITE;
     assign BDMAC_PWDATA = PWDATA;
+    assign PWM_out      = BGM_sw?PWM:1'b0;
 
 //------------------------------------------------------------------------------
 // AHB RAMCODE

@@ -76,6 +76,7 @@ __Vectors       DCD     __initial_sp              ; Top of Stack
                 DCD     0                         ; SysTick Handler
                 DCD     KEY_Handler               ; IRQ0 Handler
                 DCD     Timer_Handler             ; IRQ1 Handler
+                DCD     UARTRX_Handler            ; IRQ2 Handler
 
 
 
@@ -109,6 +110,14 @@ Timer_Handler   PROC
 				IMPORT  Timer_IRQ
 				PUSH	{R0,R1,R2,LR}
                 BL		Timer_IRQ
+				POP		{R0,R1,R2,PC}
+                ENDP
+
+UARTRX_Handler  PROC
+                EXPORT  UARTRX_Handler            [WEAK]
+				IMPORT  UARTRX_IRQ
+				PUSH	{R0,R1,R2,LR}
+                BL		UARTRX_IRQ
 				POP		{R0,R1,R2,PC}
                 ENDP
 

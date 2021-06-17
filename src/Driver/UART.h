@@ -15,4 +15,8 @@ typedef struct
 #define UART_BASE 0x40002000
 #define UART ((UARTStr *)UART_BASE)
 
+void UART_Init(void);
+void UART_putc(char txchar);
+char UART_getc(void);
+
 #endif

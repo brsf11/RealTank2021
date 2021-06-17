@@ -7,9 +7,9 @@
 #include"GameSDK/Game.h"
 #include"RealTank.h"
 
-uint32_t timer_flag;
-uint16_t y;
-uint16_t x;
+uint32_t uart_flag;
+uint16_t y,ny;
+uint16_t x,nx;
 
 int main()
 {
@@ -22,13 +22,6 @@ int main()
     UART_Init();
 
     int i,j;
-    for(i=0;i<10;i++)
-    {
-        UART_putc('h');
-    }
-
-    Draw_pic(black,110,300,20);
-
     
     for(i=0;i<12;i++)
     {
@@ -38,23 +31,22 @@ int main()
         }
     }
 
-    NVIC_CTRL_ADDR = 0x3;
+    NVIC_CTRL_ADDR = 0x7;
 
-    timer_flag = 0;
+    uart_flag = 0;
     
     y = 0;
     x = 0;
+    nx = 0;
+    ny = 0;
     while(1)
     {
-        if(x>=220)
-        {
-            x = 0;
-        }
-        Draw_pic(box,x,y,20);
-        while(!timer_flag);
+        Draw_pic(box,nx,ny,20);
+        while(!uart_flag);
         Draw_pic(black,x,y,20);
-        x++;
-        timer_flag = 0;
+        x = nx;
+        y = ny;
+        uart_flag = 0;
     }
 
     
@@ -66,23 +58,49 @@ int main()
 
 void KEY()
 {
-
+    uart_flag = 1;
+    uint32_t temp = KeyboardReg;
+    if(temp&(1))
+    {
+        nx = x + 20;
+    }
+    else if(temp&(1<<1))
+    {
+        ny = y + 20;
+    }
+    else if(temp&(1<<2))
+    {
+        nx = x - 20;
+    }else if(temp&(1<<5))
+    {
+        ny = y - 20;
+    }
 }
 
 void Timer_IRQ()
 {
-    timer_flag = 1;
-    if(TimerReg == 15)
+
+}
+
+void UARTRX_IRQ()
+{
+    UART->INTSTATUSnCLEAR = 2;
+    uart_flag = 1;
+    char ch = UART_getc();
+
+    if(ch == 'a')
     {
-        if(y>=300)
-        {
-            Draw_pic(black,x,y,20);
-            y = 0;
-        }
-        else
-        {
-            Draw_pic(black,x,y,20);
-            y += 20;
-        }
+        nx = x - 20;
+    }
+    else if(ch == 'w')
+    {
+        ny = y - 20;
+    }
+    else if(ch == 's')
+    {
+        ny = y + 20;
+    }else if(ch == 'd')
+    {
+        nx = x + 20;
     }
 }
